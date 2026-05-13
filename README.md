@@ -61,13 +61,14 @@ This project is a full-stack web application designed to simplify the hiring pro
 ## 📁 Project Structure
 
 ```
-JOBportal/
-│
-├── frontend/        # UI components
-├── backend/         # Server-side logic
-├── database/        # DB configurations
-├── assets/          # Images, styles, static files
-├── routes/          # API routes
+backend-jobportal/
+├── frontend/        # Vite React app
+│   ├── src/         # Frontend source code
+│   ├── public/      # Static frontend assets
+│   └── package.json # Frontend scripts and dependencies
+├── server/          # Django backend project
+│   ├── jobportal/   # Django project settings
+│   └── manage.py
 └── README.md
 ```
 
@@ -85,13 +86,14 @@ cd JOBportal
 ### 2️⃣ Install dependencies
 
 ```bash
+cd frontend
 npm install
 ```
 
 ### 3️⃣ Run the project
 
 ```bash
-npm start
+npm run dev
 ```
 
 *(Modify commands if using Django/PHP)*

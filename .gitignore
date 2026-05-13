@@ -1,4 +1,7 @@
-# Logs
+# ════════════════════════════════════════════════════════════════
+#  FRONTEND  (React / Vite)
+# ════════════════════════════════════════════════════════════════
+
 logs
 *.log
 npm-debug.log*
@@ -12,13 +15,66 @@ dist
 dist-ssr
 *.local
 
-# Editor directories and files
+# ════════════════════════════════════════════════════════════════
+#  BACKEND  (Django / Python)
+# ════════════════════════════════════════════════════════════════
+
+# Virtual environment — NEVER upload this
+src/server/venv/
+src/server/env/
+src/server/.venv/
+venv/
+env/
+.venv/
+
+# Environment variables — contains secrets, NEVER upload
+.env
+.env.local
+.env.production
+.env.development
+*.env
+
+# Django cache & compiled files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyc
+
+# Django default database
+db.sqlite3
+*.sqlite3
+
+# Django media & static files (user uploads, collected static)
+src/server/media/
+src/server/staticfiles/
+src/server/static_root/
+media/
+staticfiles/
+
+# ════════════════════════════════════════════════════════════════
+#  EDITOR & OS FILES
+# ════════════════════════════════════════════════════════════════
+
 .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# ════════════════════════════════════════════════════════════════
+#  PYTHON BUILD & TEST
+# ════════════════════════════════════════════════════════════════
+
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/

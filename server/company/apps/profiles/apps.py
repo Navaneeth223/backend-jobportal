@@ -3,4 +3,4 @@ from django.apps import AppConfig
 class ProfilesConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'company.apps.profiles'
-    label = 'company_profiles'          # ← different label
+    label = 'company_profiles'

@@ -32,9 +32,24 @@ class User(AbstractBaseUser, PermissionsMixin):
     role       = models.CharField(max_length=20, choices=ROLE_CHOICES)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    # Required for Django admin
     is_active  = models.BooleanField(default=True)
     is_staff   = models.BooleanField(default=False)
+
+    # ↓ These two lines fix the clash ↓
+    groups = models.ManyToManyField(
+        'auth.Group',
+        blank=True,
+        related_name='custom_user_set',
+        help_text='The groups this user belongs to.',
+        verbose_name='groups',
+    )
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        blank=True,
+        related_name='custom_user_set',
+        help_text='Specific permissions for this user.',
+        verbose_name='user permissions',
+    )
 
     objects = UserManager()
 

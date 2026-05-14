@@ -1,0 +1,6 @@
+from django.apps import AppConfig
+
+class SavedJobsConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'candidate.apps.saved_jobs'
+    label = 'candidate_saved_jobs'

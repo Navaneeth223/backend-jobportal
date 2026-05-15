@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   Briefcase,
@@ -14,6 +14,7 @@ import {
   UserCircle2,
 } from 'lucide-react';
 import { useCandidate } from '../context/CandidateContext';
+import { getCandidateProfile } from '../../api/candidateApi';
 import ProfileCompletionRing from '../components/ProfileCompletionRing';
 
 const tabs = [
@@ -87,24 +88,63 @@ const TimelineCard = ({ title, subtitle, meta, description, icon: Icon }) => (
 );
 
 const CandidateProfile = () => {
-  const { candidateProfile, updateProfile } = useCandidate();
+  const { updateProfile } = useCandidate();
   const [searchParams] = useSearchParams();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
   const activeTab = tabs.some((tab) => tab.id === searchParams.get('tab')) ? searchParams.get('tab') : 'personal';
   const activeTabMeta = tabs.find((tab) => tab.id === activeTab) || tabs[0];
 
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const data = await getCandidateProfile();
+        setProfile({
+          ...data,
+          experienceYears: data.experience_years,
+          avatar: data.avatar_url,
+          cvUrl: data.resume_url,
+          createdAt: data.created_at,
+        });
+      } catch (err) {
+        console.error('Failed to fetch profile', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
+
   const skills = useMemo(
-    () => (candidateProfile.skills || []).filter((skill) => typeof skill === 'string' && skill.trim()),
-    [candidateProfile.skills],
+    () => (profile?.skills || []).filter((skill) => typeof skill === 'string' && skill.trim()),
+    [profile?.skills],
   );
 
-  const primarySummary = candidateProfile.bio || 'Add a professional summary to help recruiters understand your strengths quickly.';
+  const primarySummary = profile?.bio || 'Add a professional summary to help recruiters understand your strengths quickly.';
 
   const handleAvatarUpload = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
     const previewUrl = URL.createObjectURL(file);
     updateProfile('avatar', previewUrl);
+    setProfile(prev => ({ ...prev, avatar: previewUrl }));
   };
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="mx-auto max-w-6xl pb-12 pt-8">
+        <EmptyState message="Profile not found. Please complete onboarding." />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 pb-12">
@@ -116,8 +156,8 @@ const CandidateProfile = () => {
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
               <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[2rem] border-4 border-white/80 bg-white shadow-lg dark:border-white/10 dark:bg-bg">
                 <img
-                  src={candidateProfile.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(candidateProfile.name || 'Candidate')}&background=2563eb&color=fff&size=160`}
-                  alt={candidateProfile.name || 'Candidate'}
+                  src={profile.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name || 'Candidate')}&background=2563eb&color=fff&size=160`}
+                  alt={profile.name || 'Candidate'}
                   className="h-full w-full object-cover"
                 />
               </div>
@@ -135,10 +175,10 @@ const CandidateProfile = () => {
                 Candidate Profile
               </div>
               <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-900 dark:text-white sm:text-4xl">
-                {candidateProfile.name || 'Your Profile'}
+                {profile.name || 'Your Profile'}
               </h1>
               <p className="mt-2 text-base font-medium text-slate-600 dark:text-slate-300">
-                {candidateProfile.title || 'Add your professional headline'}
+                {profile.title || 'Add your professional headline'}
               </p>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 dark:text-slate-400">
                 {primarySummary}
@@ -147,11 +187,11 @@ const CandidateProfile = () => {
 
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               <div className="flex items-center gap-4 rounded-[1.5rem] border border-white/60 bg-white/80 px-4 py-3 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
-                <ProfileCompletionRing percentage={candidateProfile.completionPercentage} size={76} />
+                <ProfileCompletionRing percentage={profile.completionPercentage} size={76} />
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Profile Status</p>
                   <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
-                    {candidateProfile.completionPercentage >= 100 ? 'Ready for recruiters' : 'Needs a few more details'}
+                    {profile.completionPercentage >= 100 ? 'Ready for recruiters' : 'Needs a few more details'}
                   </p>
                 </div>
               </div>
@@ -167,10 +207,10 @@ const CandidateProfile = () => {
           </div>
 
           <div className="relative mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <StatPill icon={Mail} label="Email" value={candidateProfile.email} />
-            <StatPill icon={Phone} label="Phone" value={candidateProfile.phone} />
-            <StatPill icon={MapPin} label="Location" value={candidateProfile.location} />
-            <StatPill icon={Briefcase} label="Experience" value={candidateProfile.experienceYears || `${(candidateProfile.experience || []).length} role${(candidateProfile.experience || []).length === 1 ? '' : 's'} added`} />
+            <StatPill icon={Mail} label="Email" value={profile.email} />
+            <StatPill icon={Phone} label="Phone" value={profile.phone} />
+            <StatPill icon={MapPin} label="Location" value={profile.location} />
+            <StatPill icon={Briefcase} label="Experience" value={profile.experienceYears || `${(profile.experience || []).length} role${(profile.experience || []).length === 1 ? '' : 's'} added`} />
           </div>
         </div>
       </SurfaceCard>
@@ -211,10 +251,10 @@ const CandidateProfile = () => {
             </div>
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <DetailTile icon={UserCircle2} label="Full Name" value={candidateProfile.name} />
-              <DetailTile icon={Mail} label="Email Address" value={candidateProfile.email} />
-              <DetailTile icon={Phone} label="Phone Number" value={candidateProfile.phone} accent="emerald" />
-              <DetailTile icon={MapPin} label="Current Location" value={candidateProfile.location} accent="amber" />
+              <DetailTile icon={UserCircle2} label="Full Name" value={profile.name} />
+              <DetailTile icon={Mail} label="Email Address" value={profile.email} />
+              <DetailTile icon={Phone} label="Phone Number" value={profile.phone} accent="emerald" />
+              <DetailTile icon={MapPin} label="Current Location" value={profile.location} accent="amber" />
             </div>
           </SurfaceCard>
 
@@ -224,22 +264,22 @@ const CandidateProfile = () => {
             <div className="mt-5 rounded-[1.5rem] border border-slate-200 bg-slate-50/80 p-5 dark:border-slate-800 dark:bg-bg/70">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 text-lg font-bold text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
-                  {(candidateProfile.name || 'C').slice(0, 1).toUpperCase()}
+                  {(profile.name || 'C').slice(0, 1).toUpperCase()}
                 </div>
                 <div className="min-w-0">
-                  <p className="break-words text-lg font-bold text-slate-900 dark:text-white">{candidateProfile.name || 'Candidate name'}</p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">{candidateProfile.title || 'Professional title goes here'}</p>
+                  <p className="break-words text-lg font-bold text-slate-900 dark:text-white">{profile.name || 'Candidate name'}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{profile.title || 'Professional title goes here'}</p>
                 </div>
               </div>
               <div className="mt-5 space-y-3">
                 <div className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-600 shadow-sm dark:bg-panel dark:text-slate-300">
-                  {candidateProfile.location || 'Location not added yet'}
+                  {profile.location || 'Location not added yet'}
                 </div>
                 <div className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-600 shadow-sm dark:bg-panel dark:text-slate-300">
-                  {candidateProfile.phone || 'Phone not added yet'}
+                  {profile.phone || 'Phone not added yet'}
                 </div>
                 <div className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-600 shadow-sm dark:bg-panel dark:text-slate-300">
-                  {candidateProfile.email || 'Email not added yet'}
+                  {profile.email || 'Email not added yet'}
                 </div>
               </div>
             </div>
@@ -254,14 +294,14 @@ const CandidateProfile = () => {
             <h2 className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">Professional Details</h2>
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <DetailTile icon={Briefcase} label="Current Role" value={candidateProfile.title} />
-              <DetailTile icon={Briefcase} label="Experience Band" value={candidateProfile.experienceYears} accent="emerald" />
+              <DetailTile icon={Briefcase} label="Current Role" value={profile.title} />
+              <DetailTile icon={Briefcase} label="Experience Band" value={profile.experienceYears} accent="emerald" />
             </div>
 
             <div className="mt-5 rounded-[1.5rem] border border-slate-200 bg-slate-50/80 p-5 dark:border-slate-800 dark:bg-bg/70">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Professional Summary</p>
               <p className="mt-3 text-sm leading-7 text-slate-700 dark:text-slate-200">
-                {candidateProfile.bio || 'No professional summary added yet.'}
+                {profile.bio || 'No professional summary added yet.'}
               </p>
             </div>
           </SurfaceCard>
@@ -271,8 +311,8 @@ const CandidateProfile = () => {
             <h2 className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">Quick Facts</h2>
             <div className="mt-5 grid gap-3">
               <StatPill icon={Sparkles} label="Top Skills" value={skills.length ? `${skills.length} skills added` : 'No skills added yet'} />
-              <StatPill icon={GraduationCap} label="Education" value={(candidateProfile.education || []).length ? `${candidateProfile.education.length} qualification${candidateProfile.education.length === 1 ? '' : 's'}` : 'No education added yet'} />
-              <StatPill icon={Briefcase} label="Experience" value={(candidateProfile.experience || []).length ? `${candidateProfile.experience.length} work entr${candidateProfile.experience.length === 1 ? 'y' : 'ies'}` : 'No experience added yet'} />
+              <StatPill icon={GraduationCap} label="Education" value={(profile.education || []).length ? `${profile.education.length} qualification${profile.education.length === 1 ? '' : 's'}` : 'No education added yet'} />
+              <StatPill icon={Briefcase} label="Experience" value={(profile.experience || []).length ? `${profile.experience.length} work entr${profile.experience.length === 1 ? 'y' : 'ies'}` : 'No experience added yet'} />
             </div>
           </SurfaceCard>
         </div>
@@ -285,8 +325,8 @@ const CandidateProfile = () => {
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Academic History</p>
               <h2 className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">Education</h2>
             </div>
-            {(candidateProfile.education || []).length ? (
-              candidateProfile.education.map((edu) => (
+            {(profile.education || []).length ? (
+              profile.education.map((edu) => (
                 <TimelineCard
                   key={edu.id}
                   icon={GraduationCap}
@@ -305,8 +345,8 @@ const CandidateProfile = () => {
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Career Timeline</p>
               <h2 className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">Work Experience</h2>
             </div>
-            {(candidateProfile.experience || []).length ? (
-              candidateProfile.experience.map((exp) => (
+            {(profile.experience || []).length ? (
+              profile.experience.map((exp) => (
                 <TimelineCard
                   key={exp.id}
                   icon={Briefcase}
@@ -348,9 +388,9 @@ const CandidateProfile = () => {
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Online Presence</p>
             <h2 className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">Links</h2>
             <div className="mt-5 grid gap-4">
-              <DetailTile icon={FileText} label="LinkedIn" value={candidateProfile.linkedin} />
-              <DetailTile icon={FileText} label="GitHub" value={candidateProfile.github} accent="emerald" />
-              <DetailTile icon={FileText} label="Portfolio" value={candidateProfile.portfolio} accent="amber" />
+              <DetailTile icon={FileText} label="LinkedIn" value={profile.linkedin} />
+              <DetailTile icon={FileText} label="GitHub" value={profile.github} accent="emerald" />
+              <DetailTile icon={FileText} label="Portfolio" value={profile.portfolio} accent="amber" />
             </div>
           </SurfaceCard>
         </div>
@@ -370,15 +410,15 @@ const CandidateProfile = () => {
                 <div className="min-w-0">
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Uploaded Resume</p>
                   <p className="mt-2 break-words text-base font-semibold text-slate-900 dark:text-white">
-                    {candidateProfile.cvName || 'No CV uploaded yet'}
+                    {profile.cvName || 'No CV uploaded yet'}
                   </p>
                   <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
                     Keep your CV updated so recruiters can review your latest profile details and experience.
                   </p>
 
-                  {candidateProfile.cvUrl ? (
+                  {profile.cvUrl ? (
                     <a
-                      href={candidateProfile.cvUrl}
+                      href={profile.cvUrl}
                       target="_blank"
                       rel="noreferrer"
                       className="mt-4 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
@@ -396,9 +436,9 @@ const CandidateProfile = () => {
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Status</p>
             <h2 className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">Document Readiness</h2>
             <div className="mt-5 grid gap-3">
-              <StatPill icon={FileBadge2} label="Resume Upload" value={candidateProfile.cvName ? 'Uploaded successfully' : 'Pending upload'} />
-              <StatPill icon={Sparkles} label="Profile Completion" value={`${candidateProfile.completionPercentage}% complete`} />
-              <StatPill icon={Briefcase} label="Recruiter Ready" value={candidateProfile.completionPercentage >= 100 ? 'Yes, ready to apply' : 'Add a few more details'} />
+              <StatPill icon={FileBadge2} label="Resume Upload" value={profile.cvName ? 'Uploaded successfully' : 'Pending upload'} />
+              <StatPill icon={Sparkles} label="Profile Completion" value={`${profile.completionPercentage}% complete`} />
+              <StatPill icon={Briefcase} label="Recruiter Ready" value={profile.completionPercentage >= 100 ? 'Yes, ready to apply' : 'Add a few more details'} />
             </div>
           </SurfaceCard>
         </div>

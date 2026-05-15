@@ -2,6 +2,7 @@ import React from 'react';
 import { Briefcase, Calendar, Bookmark, Eye, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCandidate } from '../context/CandidateContext';
+import { getCandidateProfile, getSavedJobs } from '../../api/candidateApi';
 import { mockJobs } from '../data/mockJobs';
 import StatCard from '../components/StatCard';
 import JobCard from '../components/JobCard';
@@ -9,7 +10,48 @@ import ProfileCompletionRing from '../components/ProfileCompletionRing';
 import ApplicationStatusBadge from '../components/ApplicationStatusBadge';
 
 const CandidateDashboard = () => {
-  const { candidateProfile, applications, savedJobs, toggleSaveJob, applyToJob } = useCandidate();
+  const { applications, toggleSaveJob, applyToJob } = useCandidate();
+  const [candidateProfile, setCandidateProfile] = React.useState(null);
+  const [savedJobs, setSavedJobs] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [profileData, savedJobsData] = await Promise.all([
+          getCandidateProfile(),
+          getSavedJobs()
+        ]);
+        setCandidateProfile({
+          ...profileData,
+          experienceYears: profileData.experience_years,
+          cvUrl: profileData.resume_url,
+          avatar: profileData.avatar_url,
+          experience: profileData.experience || [],
+          skills: profileData.skills || [],
+          completionPercentage: profileData.name ? (profileData.resume_url ? 100 : 70) : 0, // simple mock completion if needed
+        });
+        setSavedJobs(savedJobsData || []);
+      } catch (err) {
+        console.error('Failed to fetch dashboard data', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!candidateProfile) {
+    return <div>Profile not found. Please complete onboarding.</div>;
+  }
 
   const stats = [
     { label: 'Jobs Applied', value: applications.length, icon: Briefcase, iconBg: 'bg-blue-500', trend: '+3 this week' },

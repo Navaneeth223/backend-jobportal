@@ -38,3 +38,23 @@ export const removeSavedJob = async (jobId) => {
     const res = await axiosInstance.delete(`/candidates/save-job/${jobId}/`);
     return res.data;
 };
+
+export const addEducation = async (data) => {
+    const res = await axiosInstance.post('/candidates/education/', data);
+    return res.data;
+};
+
+export const removeEducation = async (id) => {
+    const res = await axiosInstance.delete(`/candidates/education/${id}/`);
+    return res.data;
+};
+
+export const addExperience = async (data) => {
+    const res = await axiosInstance.post('/candidates/experience/', data);
+    return res.data;
+};
+
+export const removeExperience = async (id) => {
+    const res = await axiosInstance.delete(`/candidates/experience/${id}/`);
+    return res.data;
+};

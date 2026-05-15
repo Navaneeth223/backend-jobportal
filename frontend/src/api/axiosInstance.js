@@ -38,7 +38,8 @@ axiosInstance.interceptors.response.use(
                     return axiosInstance(original);
                 } catch {
                     localStorage.clear();
-                    window.location.href = '/login';
+                    // Let parent app handle auth state if token is completely invalid
+                    window.parent.postMessage({ type: 'AUTH_EXPIRED' }, '*');
                 }
             }
         }

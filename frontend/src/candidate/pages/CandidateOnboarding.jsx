@@ -6,7 +6,7 @@ import StepWizard from '../components/StepWizard';
 import SkillChip from '../components/SkillChip';
 import ResumeImportReview from '../components/ResumeImportReview';
 import { mergeProfileSections } from '../utils/profileMerge';
-import { createCandidateProfile, updateCandidateProfile } from '../../api/candidateApi';
+import { createCandidateProfile, updateCandidateProfile, addEducation, addExperience } from '../../api/candidateApi';
 
 const CandidateOnboarding = () => {
   const navigate = useNavigate();
@@ -144,6 +144,34 @@ const CandidateOnboarding = () => {
         await createCandidateProfile(payload);
       } catch {
         await updateCandidateProfile(payload);
+      }
+
+      if (formData.education?.length > 0) {
+        for (const edu of formData.education) {
+          if (edu.degree) {
+            await addEducation({
+              degree: edu.degree,
+              institution: edu.institution,
+              start_date: edu.from,
+              end_date: edu.to,
+              cgpa: edu.grade
+            }).catch(console.error);
+          }
+        }
+      }
+
+      if (formData.experience?.length > 0) {
+        for (const exp of formData.experience) {
+          if (exp.title) {
+            await addExperience({
+              title: exp.title,
+              company: exp.company,
+              start_date: exp.from,
+              end_date: exp.to,
+              description: exp.description
+            }).catch(console.error);
+          }
+        }
       }
 
       replaceProfile(formData);

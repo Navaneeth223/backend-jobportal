@@ -20,6 +20,19 @@ class CandidateProfileView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+    def post(self, request):
+        existing = CandidateProfile.objects.filter(user=request.user).first()
+        if existing:
+            return Response(
+                {'error': 'Profile already exists. Use PUT to update.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        serializer = CandidateProfileSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     def put(self, request):
         try:
             profile = CandidateProfile.objects.get(user=request.user)

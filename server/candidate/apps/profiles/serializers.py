@@ -3,12 +3,18 @@ from .models import CandidateProfile, CandidateEducation, CandidateExperience
 
 
 class CandidateEducationSerializer(serializers.ModelSerializer):
+    start_date = serializers.DateField(required=False, allow_null=True)
+    end_date = serializers.DateField(required=False, allow_null=True)
+    
     class Meta:
         model  = CandidateEducation
         fields = ['id', 'degree', 'institution', 'start_date', 'end_date', 'cgpa']
 
 
 class CandidateExperienceSerializer(serializers.ModelSerializer):
+    start_date = serializers.DateField(required=False, allow_null=True)
+    end_date = serializers.DateField(required=False, allow_null=True)
+
     class Meta:
         model  = CandidateExperience
         fields = ['id', 'title', 'company', 'start_date', 'end_date', 'description', 'years']

@@ -136,6 +136,7 @@ const CandidateOnboarding = () => {
         github: formData.github || '',
         portfolio: formData.portfolio || '',
         resume_url: formData.cvUrl?.startsWith('http') ? formData.cvUrl : '',
+        avatar_url: formData.avatar?.startsWith('http') ? formData.avatar : '',
         skills: formData.skills || [],
       };
 

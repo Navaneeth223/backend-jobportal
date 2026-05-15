@@ -6,6 +6,7 @@ import StepWizard from '../components/StepWizard';
 import SkillChip from '../components/SkillChip';
 import ResumeImportReview from '../components/ResumeImportReview';
 import { mergeProfileSections } from '../utils/profileMerge';
+import { createCandidateProfile, updateCandidateProfile } from '../../api/candidateApi';
 
 const CandidateOnboarding = () => {
   const navigate = useNavigate();
@@ -56,6 +57,8 @@ const CandidateOnboarding = () => {
   const [showExpForm, setShowExpForm] = useState(false);
   const [expForm, setExpForm] = useState({ title: '', company: '', from: '', to: '', description: '' });
   const [avatarPreview, setAvatarPreview] = useState(candidateProfile.avatar || null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const steps = [
     { id: 1, label: 'CV & Review' },
@@ -113,10 +116,44 @@ const CandidateOnboarding = () => {
   };
   const handleBack = () => setStep(currentStep - 1);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    replaceProfile(formData);
-    navigate('/candidate/dashboard');
+    setIsSaving(true);
+    setSaveError('');
+
+    try {
+      const payload = {
+        name: formData.name || '',
+        email: formData.email || '',
+        phone: formData.phone || '',
+        title: formData.title || '',
+        location: formData.location || '',
+        bio: formData.bio || '',
+        dob: formData.dob || null,
+        gender: formData.gender || '',
+        experience_years: formData.experienceYears || '',
+        linkedin: formData.linkedin || '',
+        github: formData.github || '',
+        portfolio: formData.portfolio || '',
+        resume_url: formData.cvUrl?.startsWith('http') ? formData.cvUrl : '',
+        skills: formData.skills || [],
+      };
+
+      try {
+        await createCandidateProfile(payload);
+      } catch {
+        await updateCandidateProfile(payload);
+      }
+
+      replaceProfile(formData);
+      navigate('/candidate/dashboard');
+
+    } catch (error) {
+      console.error('Profile save failed:', error);
+      setSaveError('Failed to save profile. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleChange = (event) => {
@@ -685,6 +722,10 @@ const CandidateOnboarding = () => {
             {'<-'} Back
           </button>
 
+          {saveError && (
+            <p className="text-sm text-red-500 text-center">{saveError}</p>
+          )}
+
           {currentStep < 5 ? (
             <button
               type="button"
@@ -695,10 +736,12 @@ const CandidateOnboarding = () => {
             </button>
           ) : (
             <button
-              type="submit"
-              className="order-1 flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-8 py-3 font-bold text-white transition-all hover:bg-green-700 active:scale-95 sm:order-2 sm:w-auto"
+                type="submit"
+                disabled={isSaving}
+                className="order-1 flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-8 py-3 font-bold text-white transition-all hover:bg-green-700 active:scale-95 disabled:opacity-60 sm:order-2 sm:w-auto"
             >
-              <CheckCircle2 size={20} /> Complete Profile Setup
+                <CheckCircle2 size={20} />
+                {isSaving ? 'Saving...' : 'Complete Profile Setup'}
             </button>
           )}
         </div>

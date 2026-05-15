@@ -21,12 +21,15 @@ class CandidateProfileView(APIView):
             )
 
     def post(self, request):
+        # If profile exists already, just update it
         existing = CandidateProfile.objects.filter(user=request.user).first()
         if existing:
-            return Response(
-                {'error': 'Profile already exists. Use PUT to update.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            serializer = CandidateProfileSerializer(existing, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = CandidateProfileSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(user=request.user)

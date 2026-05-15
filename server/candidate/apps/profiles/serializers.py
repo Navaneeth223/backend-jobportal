@@ -28,3 +28,19 @@ class CandidateProfileSerializer(serializers.ModelSerializer):
             'created_at',
         ]
         read_only_fields = ['id', 'created_at']
+        extra_kwargs = {
+            'email':       {'required': False, 'allow_blank': True},
+            'phone':       {'required': False, 'allow_blank': True},
+            'name':        {'required': False, 'allow_blank': True},
+            'location':    {'required': False, 'allow_blank': True},
+            'dob':         {'required': False, 'allow_null': True},
+            'gender':      {'required': False, 'allow_blank': True},
+            'title':       {'required': False, 'allow_blank': True},
+            'bio':         {'required': False, 'allow_blank': True},
+            'linkedin':    {'required': False, 'allow_blank': True},
+            'github':      {'required': False, 'allow_blank': True},
+            'portfolio':   {'required': False, 'allow_blank': True},
+            'resume_url':  {'required': False, 'allow_blank': True},
+            'avatar_url':  {'required': False, 'allow_blank': True},
+            'experience_years': {'required': False, 'allow_blank': True},
+        }

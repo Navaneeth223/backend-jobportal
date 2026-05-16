@@ -58,3 +58,18 @@ export const removeExperience = async (id) => {
     const res = await axiosInstance.delete(`/candidates/experience/${id}/`);
     return res.data;
 };
+
+export const getJobs = async (filters = {}) => {
+    // Construct query parameters from filters object
+    const params = new URLSearchParams(filters).toString();
+    const url = params ? `/jobs/?${params}` : '/jobs/';
+    const res = await axiosInstance.get(url);
+    // DRF may return paginated { count, next, previous, results } or just a list
+    // We return the raw data and handle it in the component
+    return res.data;
+};
+
+export const getJobDetail = async (jobId) => {
+    const res = await axiosInstance.get(`/jobs/${jobId}/`);
+    return res.data;
+};

@@ -7,6 +7,9 @@ urlpatterns = [
     # Auth
     path('api/auth/', include('users.urls')),
 
+    # Jobs
+    path('api/jobs/', include('company.apps.jobs.urls')),
+
     # Candidate
     path('api/candidates/', include('candidate.apps.profiles.urls')),
     path('api/candidates/', include('candidate.apps.saved_jobs.urls')),

@@ -2,14 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { LayoutGrid, List, SlidersHorizontal, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useCandidate } from '../context/CandidateContext';
-import { mockJobs } from '../data/mockJobs';
 import { useJobFilters } from '../hooks/useJobFilters';
+import { getJobs, getSavedJobs, saveJob, removeSavedJob } from '../api/candidateApi';
 import FilterPanel from '../components/FilterPanel';
 import JobCard from '../components/JobCard';
 
 const BrowseJobs = () => {
   const [searchParams] = useSearchParams();
-  const { savedJobs, applications, toggleSaveJob, applyToJob } = useCandidate();
+  const { applications, applyToJob } = useCandidate();
   const [view, setView] = useState('grid');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [sortBy, setSortBy] = useState('Newest');
@@ -17,18 +17,82 @@ const BrowseJobs = () => {
   const itemsPerPage = 6;
 
   const filterType = searchParams.get('filter');
-  const requestedJobId = Number(searchParams.get('jobId'));
+  const requestedJobId = searchParams.get('jobId');
 
-  const initialJobs = filterType === 'recommended' 
-    ? mockJobs.filter(j => j.matchPercentage > 80)
-    : filterType === 'saved'
-    ? mockJobs.filter(j => savedJobs.includes(j.id))
-    : mockJobs;
+  const [apiJobs, setApiJobs] = useState([]);
+  const [savedJobIds, setSavedJobIds] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const { filters, filteredJobs, updateFilters, clearFilters } = useJobFilters(initialJobs);
+  const { filters, updateFilters, clearFilters } = useJobFilters([]);
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      setIsLoading(true);
+      try {
+        const queryParams = {};
+        if (filters.search) queryParams.keyword = filters.search;
+        if (filters.jobTypes && filters.jobTypes.length) queryParams.job_type = filters.jobTypes.join(',');
+        if (filters.location && filters.location.length) queryParams.location = filters.location.join(',');
+        // For category, you can add similar logic
+        
+        const data = await getJobs(queryParams);
+        const results = data.results || data;
+        const jobsArray = Array.isArray(results) ? results : [];
+        
+        // Map DRF fields to frontend fields
+        const mappedJobs = jobsArray.map(j => ({
+          ...j,
+          company: j.company_name, // Map to company for useJobFilters
+          companyName: j.company_name,
+          companyLogo: j.company_logo,
+          salaryMin: j.salary_min,
+          salaryMax: j.salary_max,
+          jobType: j.job_type,
+          workMode: j.work_mode,
+          postedAt: j.posted_at,
+          experienceRequired: '1-3 yrs' // Fallback for local filtering if needed
+        }));
+        setApiJobs(mappedJobs);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchJobs();
+  }, [filters]);
+
+  useEffect(() => {
+    const fetchSaved = async () => {
+      try {
+        const data = await getSavedJobs();
+        setSavedJobIds(data.map(item => item.job));
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchSaved();
+  }, []);
+
+  const handleToggleSaveJob = async (jobId) => {
+    try {
+      if (savedJobIds.includes(jobId)) {
+        await removeSavedJob(jobId);
+        setSavedJobIds(prev => prev.filter(id => id !== jobId));
+      } else {
+        await saveJob(jobId);
+        setSavedJobIds(prev => [...prev, jobId]);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Local filtering is done by useJobFilters, but we'll manually apply it here so we can use apiJobs directly
+  const filteredJobs = apiJobs; 
 
   const sortedJobs = [...filteredJobs].sort((a, b) => {
-    if (sortBy === 'Newest') return new Date(b.postedDate) - new Date(a.postedDate);
+    if (sortBy === 'Newest') return new Date(b.postedAt || b.posted_at) - new Date(a.postedAt || a.posted_at);
     if (sortBy === 'Salary: High to Low') return b.salaryMax - a.salaryMax;
     return 0; // Relevance or default
   });
@@ -118,16 +182,20 @@ const BrowseJobs = () => {
 
         {/* Job Listings Grid */}
         <div className="lg:col-span-3">
-          {filteredJobs.length > 0 ? (
+          {isLoading ? (
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
+            </div>
+          ) : filteredJobs.length > 0 ? (
             <div className={`grid gap-6 ${view === 'grid' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
               {paginatedJobs.map((job) => (
                 <JobCard 
                   key={job.id} 
                   job={job} 
                   view={view}
-                  isSaved={savedJobs.includes(job.id)}
+                  isSaved={savedJobIds.includes(job.id)}
                   hasApplied={hasApplied(job.id)}
-                  onSave={toggleSaveJob}
+                  onSave={() => handleToggleSaveJob(job.id)}
                   onApply={applyToJob}
                   data-job-id={job.id}
                   className={job.id === requestedJobId ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-transparent' : ''}

@@ -2,8 +2,8 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import CandidateProfile, CandidateEducation, CandidateExperience
-from .serializers import CandidateProfileSerializer, CandidateEducationSerializer, CandidateExperienceSerializer
+from .models import CandidateProfile, CandidateEducation, CandidateExperience, CandidateSkill
+from .serializers import CandidateProfileSerializer, CandidateEducationSerializer, CandidateExperienceSerializer, CandidateSkillSerializer
 from datetime import datetime
 
 def parse_date(date_str):
@@ -169,4 +169,27 @@ class CandidateExperienceView(APIView):
             exp.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         except (CandidateProfile.DoesNotExist, CandidateExperience.DoesNotExist):
+            return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+
+class CandidateSkillView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            profile = CandidateProfile.objects.get(user=request.user)
+            serializer = CandidateSkillSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save(candidate=profile)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except CandidateProfile.DoesNotExist:
+            return Response({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    def delete(self, request, pk):
+        try:
+            profile = CandidateProfile.objects.get(user=request.user)
+            skill = CandidateSkill.objects.get(pk=pk, candidate=profile)
+            skill.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except (CandidateProfile.DoesNotExist, CandidateSkill.DoesNotExist):
             return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)

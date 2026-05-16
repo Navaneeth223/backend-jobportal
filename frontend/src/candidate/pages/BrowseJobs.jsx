@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { LayoutGrid, List, SlidersHorizontal, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { LayoutGrid, List, SlidersHorizontal, ChevronLeft, ChevronRight, X, Search } from 'lucide-react';
 import { useCandidate } from '../context/CandidateContext';
 import { useJobFilters } from '../hooks/useJobFilters';
-import { getJobs, getSavedJobs, saveJob, removeSavedJob, applyToJob as apiApplyToJob, getMyApplications } from '../api/candidateApi';
+import { getJobs, getSavedJobs, saveJob, removeSavedJob, applyToJob as apiApplyToJob, getMyApplications } from '../../api/candidateApi';
 import FilterPanel from '../components/FilterPanel';
 import JobCard from '../components/JobCard';
 
@@ -127,8 +127,6 @@ const BrowseJobs = () => {
   const totalPages = Math.ceil(prioritizedJobs.length / itemsPerPage);
   const activePage = requestedJobId ? 1 : Math.min(currentPage, Math.max(totalPages, 1));
   const paginatedJobs = prioritizedJobs.slice((activePage - 1) * itemsPerPage, activePage * itemsPerPage);
-
-  const hasApplied = (jobId) => applications.some(a => a.jobId === jobId);
 
   useEffect(() => {
     if (!requestedJobId || !paginatedJobs.some((job) => job.id === requestedJobId)) {
@@ -291,8 +289,5 @@ const BrowseJobs = () => {
     </div>
   );
 };
-
-// Import Search for Empty State
-import { Search } from 'lucide-react';
 
 export default BrowseJobs;

@@ -59,6 +59,16 @@ export const removeExperience = async (id) => {
     return res.data;
 };
 
+export const addSkill = async (name, level = '') => {
+    const res = await axiosInstance.post('/candidates/skills/', { name, level });
+    return res.data;
+};
+
+export const removeSkill = async (id) => {
+    const res = await axiosInstance.delete(`/candidates/skills/${id}/`);
+    return res.data;
+};
+
 export const getJobs = async (filters = {}) => {
     // Construct query parameters from filters object
     const params = new URLSearchParams(filters).toString();
@@ -107,5 +117,20 @@ export const markNotificationRead = async (notificationId) => {
 
 export const markAllNotificationsRead = async () => {
     const res = await axiosInstance.put('/notifications/read-all/');
+    return res.data;
+};
+
+export const getConversations = async () => {
+    const res = await axiosInstance.get('/conversations/');
+    return res.data;
+};
+
+export const getMessages = async (conversationId) => {
+    const res = await axiosInstance.get(`/conversations/${conversationId}/messages/`);
+    return res.data;
+};
+
+export const sendMessage = async (conversationId, text, attachmentUrl = '') => {
+    const res = await axiosInstance.post(`/conversations/${conversationId}/messages/`, { text, attachment_url: attachmentUrl });
     return res.data;
 };

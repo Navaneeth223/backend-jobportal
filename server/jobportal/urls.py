@@ -17,4 +17,7 @@ urlpatterns = [
 
     # Notifications
     path('api/notifications/', include('notifications.urls')),
+
+    # Messaging
+    path('api/conversations/', include('messaging.urls')),
 ]

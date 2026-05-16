@@ -3,7 +3,7 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { Calendar, MessageSquare, ExternalLink, Trash2, Search } from 'lucide-react';
 import { useCandidate } from '../context/CandidateContext';
 import ApplicationStatusBadge from '../components/ApplicationStatusBadge';
-import { getMyApplications, withdrawApplication } from '../api/candidateApi';
+import { getMyApplications, withdrawApplication } from '../../api/candidateApi';
 
 const MyApplications = () => {
   const navigate = useNavigate();

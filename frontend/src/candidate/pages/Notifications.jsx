@@ -2,7 +2,7 @@ import React from 'react';
 import { Bell, CheckCheck, Trash2 } from 'lucide-react';
 import { useCandidate } from '../context/CandidateContext';
 import NotificationItem from '../components/NotificationItem';
-import { getNotifications, markNotificationRead, markAllNotificationsRead } from '../api/candidateApi';
+import { getNotifications, markNotificationRead, markAllNotificationsRead } from '../../api/candidateApi';
 
 const Notifications = () => {
   const { notifications: contextNotifications } = useCandidate(); // unused now

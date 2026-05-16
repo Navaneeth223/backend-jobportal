@@ -28,7 +28,7 @@ class CandidateProfile(models.Model):
     github           = models.URLField(blank=True)
     portfolio        = models.URLField(blank=True)
     resume_url       = models.URLField(blank=True)
-    skills           = models.JSONField(default=list, blank=True)
+    skills_legacy    = models.JSONField(default=list, blank=True)
     created_at       = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -71,3 +71,23 @@ class CandidateExperience(models.Model):
 
     class Meta:
         app_label = 'candidate_profiles'
+
+class CandidateSkill(models.Model):
+
+    LEVEL_CHOICES = [
+        ('beginner', 'Beginner'),
+        ('intermediate', 'Intermediate'),
+        ('expert', 'Expert'),
+    ]
+
+    id        = models.AutoField(primary_key=True)
+    candidate = models.ForeignKey(CandidateProfile, on_delete=models.CASCADE, related_name='skill_set')
+    name      = models.CharField(max_length=100)
+    level     = models.CharField(max_length=20, choices=LEVEL_CHOICES, blank=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.level})"
+
+    class Meta:
+        app_label = 'candidate_profiles'
+        db_table = 'candidate_skills'

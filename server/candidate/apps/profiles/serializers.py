@@ -1,5 +1,10 @@
 from rest_framework import serializers
-from .models import CandidateProfile, CandidateEducation, CandidateExperience
+from .models import CandidateProfile, CandidateEducation, CandidateExperience, CandidateSkill
+
+class CandidateSkillSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CandidateSkill
+        fields = ['id', 'name', 'level']
 
 
 class CandidateEducationSerializer(serializers.ModelSerializer):
@@ -23,6 +28,7 @@ class CandidateExperienceSerializer(serializers.ModelSerializer):
 class CandidateProfileSerializer(serializers.ModelSerializer):
     education  = CandidateEducationSerializer(many=True, read_only=True)
     experience = CandidateExperienceSerializer(many=True, read_only=True)
+    skill_set  = CandidateSkillSerializer(many=True, read_only=True)
 
     class Meta:
         model  = CandidateProfile
@@ -30,7 +36,7 @@ class CandidateProfileSerializer(serializers.ModelSerializer):
             'id', 'name', 'email', 'phone', 'avatar_url',
             'title', 'location', 'bio', 'dob', 'gender',
             'experience_years', 'linkedin', 'github', 'portfolio',
-            'resume_url', 'skills', 'education', 'experience',
+            'resume_url', 'skills_legacy', 'skill_set', 'education', 'experience',
             'created_at',
         ]
         read_only_fields = ['id', 'created_at']

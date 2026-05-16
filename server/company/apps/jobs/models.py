@@ -3,6 +3,20 @@ from django.db import models
 from company.apps.profiles.models import Company
 
 
+class JobCategory(models.Model):
+    id         = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name       = models.CharField(max_length=100, unique=True)
+    slug       = models.SlugField(unique=True)
+    icon       = models.CharField(max_length=50, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        app_label = 'company_jobs'
+        verbose_name_plural = 'Job Categories'
+
 class Job(models.Model):
 
     STATUS_CHOICES = [
@@ -27,7 +41,8 @@ class Job(models.Model):
     id            = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     company       = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='jobs')
     title         = models.CharField(max_length=255, db_index=True)
-    category      = models.CharField(max_length=255, blank=True)
+    category_name = models.CharField(max_length=255, blank=True)
+    category      = models.ForeignKey(JobCategory, null=True, blank=True, on_delete=models.SET_NULL, related_name='jobs')
     job_type      = models.CharField(max_length=50, choices=JOB_TYPE_CHOICES)
     work_mode     = models.CharField(max_length=50, choices=WORK_MODE_CHOICES)
     location      = models.CharField(max_length=255, blank=True)

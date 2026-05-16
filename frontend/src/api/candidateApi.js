@@ -94,3 +94,18 @@ export const withdrawApplication = async (applicationId) => {
     const res = await axiosInstance.delete(`/candidates/applications/${applicationId}/`);
     return res.data;
 };
+
+export const getNotifications = async (unreadOnly = false) => {
+    const res = await axiosInstance.get(`/notifications/?unread=${unreadOnly}`);
+    return res.data;
+};
+
+export const markNotificationRead = async (notificationId) => {
+    const res = await axiosInstance.put(`/notifications/${notificationId}/read/`);
+    return res.data;
+};
+
+export const markAllNotificationsRead = async () => {
+    const res = await axiosInstance.put('/notifications/read-all/');
+    return res.data;
+};

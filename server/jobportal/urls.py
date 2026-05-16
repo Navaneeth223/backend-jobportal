@@ -14,4 +14,7 @@ urlpatterns = [
     path('api/candidates/', include('candidate.apps.profiles.urls')),
     path('api/candidates/', include('candidate.apps.saved_jobs.urls')),
     path('api/candidates/', include('candidate.apps.applications.urls')),
+
+    # Notifications
+    path('api/notifications/', include('notifications.urls')),
 ]

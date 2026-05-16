@@ -3,13 +3,12 @@ import { useSearchParams } from 'react-router-dom';
 import { LayoutGrid, List, SlidersHorizontal, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useCandidate } from '../context/CandidateContext';
 import { useJobFilters } from '../hooks/useJobFilters';
-import { getJobs, getSavedJobs, saveJob, removeSavedJob } from '../api/candidateApi';
+import { getJobs, getSavedJobs, saveJob, removeSavedJob, applyToJob as apiApplyToJob, getMyApplications } from '../api/candidateApi';
 import FilterPanel from '../components/FilterPanel';
 import JobCard from '../components/JobCard';
 
 const BrowseJobs = () => {
   const [searchParams] = useSearchParams();
-  const { applications, applyToJob } = useCandidate();
   const [view, setView] = useState('grid');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [sortBy, setSortBy] = useState('Newest');
@@ -21,6 +20,7 @@ const BrowseJobs = () => {
 
   const [apiJobs, setApiJobs] = useState([]);
   const [savedJobIds, setSavedJobIds] = useState([]);
+  const [apiApplications, setApiApplications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const { filters, updateFilters, clearFilters } = useJobFilters([]);
@@ -63,16 +63,33 @@ const BrowseJobs = () => {
   }, [filters]);
 
   useEffect(() => {
-    const fetchSaved = async () => {
+    const fetchSavedAndApps = async () => {
       try {
-        const data = await getSavedJobs();
-        setSavedJobIds(data.map(item => item.job));
+        const [savedData, appsData] = await Promise.all([
+          getSavedJobs(),
+          getMyApplications()
+        ]);
+        setSavedJobIds(savedData.map(item => item.job));
+        
+        const apps = appsData.results || appsData;
+        setApiApplications(Array.isArray(apps) ? apps.map(app => app.job) : []);
       } catch (err) {
         console.error(err);
       }
     };
-    fetchSaved();
+    fetchSavedAndApps();
   }, []);
+
+  const hasApplied = (jobId) => apiApplications.includes(jobId);
+
+  const handleApply = async (jobId) => {
+    try {
+      await apiApplyToJob(jobId);
+      setApiApplications(prev => [...prev, jobId]);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleToggleSaveJob = async (jobId) => {
     try {
@@ -196,7 +213,7 @@ const BrowseJobs = () => {
                   isSaved={savedJobIds.includes(job.id)}
                   hasApplied={hasApplied(job.id)}
                   onSave={() => handleToggleSaveJob(job.id)}
-                  onApply={applyToJob}
+                  onApply={() => handleApply(job.id)}
                   data-job-id={job.id}
                   className={job.id === requestedJobId ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-transparent' : ''}
                 />

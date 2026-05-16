@@ -3,22 +3,70 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { Calendar, MessageSquare, ExternalLink, Trash2, Search } from 'lucide-react';
 import { useCandidate } from '../context/CandidateContext';
 import ApplicationStatusBadge from '../components/ApplicationStatusBadge';
+import { getMyApplications, withdrawApplication } from '../api/candidateApi';
 
 const MyApplications = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { applications, ensureConversationForApplication } = useCandidate();
+  const { ensureConversationForApplication } = useCandidate();
   const activeTab = searchParams.get('tab') || 'applied';
 
+  const [apiApplications, setApiApplications] = React.useState([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchApplications = async () => {
+      try {
+        const data = await getMyApplications();
+        const results = data.results || data;
+        
+        const mappedApps = (Array.isArray(results) ? results : []).map(app => {
+          let frontendStatus = 'applied';
+          if (app.recruiter_status === 'interview') frontendStatus = 'interview_scheduled';
+          else if (app.recruiter_status === 'selected') frontendStatus = 'selected';
+          else if (app.recruiter_status === 'rejected') frontendStatus = 'rejected';
+          else if (app.recruiter_status === 'reviewing') frontendStatus = 'applied';
+
+          return {
+            id: app.id,
+            jobId: app.job,
+            jobTitle: app.job_title,
+            company: app.company_name,
+            companyLogo: app.company_logo,
+            appliedDate: new Date(app.applied_at).toISOString().split('T')[0],
+            status: frontendStatus,
+            interviewDate: app.interview_date,
+            interviewType: app.interview_type
+          };
+        });
+        setApiApplications(mappedApps);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchApplications();
+  }, []);
+
+  const handleWithdraw = async (appId) => {
+    try {
+      await withdrawApplication(appId);
+      setApiApplications(prev => prev.filter(app => app.id !== appId));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const tabs = [
-    { id: 'applied', label: 'Applied', count: applications.filter(a => a.status === 'applied').length },
-    { id: 'shortlisted', label: 'Shortlisted', count: applications.filter(a => a.status === 'shortlisted').length },
-    { id: 'selected', label: 'Selected', count: applications.filter(a => a.status === 'selected').length },
-    { id: 'interview', label: 'Interview Scheduled', count: applications.filter(a => a.status === 'interview_scheduled').length },
-    { id: 'rejected', label: 'Rejected', count: applications.filter(a => a.status === 'rejected').length },
+    { id: 'applied', label: 'Applied', count: apiApplications.filter(a => a.status === 'applied').length },
+    { id: 'shortlisted', label: 'Shortlisted', count: apiApplications.filter(a => a.status === 'shortlisted').length },
+    { id: 'selected', label: 'Selected', count: apiApplications.filter(a => a.status === 'selected').length },
+    { id: 'interview', label: 'Interview Scheduled', count: apiApplications.filter(a => a.status === 'interview_scheduled').length },
+    { id: 'rejected', label: 'Rejected', count: apiApplications.filter(a => a.status === 'rejected').length },
   ];
 
-  const filteredApplications = applications.filter(app => {
+  const filteredApplications = apiApplications.filter(app => {
     if (activeTab === 'interview') return app.status === 'interview_scheduled';
     return app.status === activeTab;
   });
@@ -100,7 +148,10 @@ const MyApplications = () => {
 
                 <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4 sm:border-none sm:pt-0">
                   {activeTab === 'applied' && (
-                     <button className="flex items-center gap-2 rounded-xl bg-red-50 px-4 py-2 text-xs font-bold text-red-600 transition-all hover:bg-red-100 dark:bg-red-900/10">
+                     <button 
+                        onClick={() => handleWithdraw(app.id)}
+                        className="flex items-center gap-2 rounded-xl bg-red-50 px-4 py-2 text-xs font-bold text-red-600 transition-all hover:bg-red-100 dark:bg-red-900/10"
+                     >
                         <Trash2 size={16} /> Withdraw
                      </button>
                   )}

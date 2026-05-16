@@ -73,3 +73,24 @@ export const getJobDetail = async (jobId) => {
     const res = await axiosInstance.get(`/jobs/${jobId}/`);
     return res.data;
 };
+
+export const getMyApplications = async () => {
+    const res = await axiosInstance.get('/candidates/applications/');
+    return res.data;
+};
+
+export const applyToJob = async (jobId, coverLetter = '', message = '', cvUrl = '') => {
+    const payload = {
+        job: jobId,
+        cover_letter: coverLetter,
+        message: message,
+        cv_url: cvUrl
+    };
+    const res = await axiosInstance.post('/candidates/applications/', payload);
+    return res.data;
+};
+
+export const withdrawApplication = async (applicationId) => {
+    const res = await axiosInstance.delete(`/candidates/applications/${applicationId}/`);
+    return res.data;
+};

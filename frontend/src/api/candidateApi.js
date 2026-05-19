@@ -134,3 +134,8 @@ export const sendMessage = async (conversationId, text, attachmentUrl = '') => {
     const res = await axiosInstance.post(`/conversations/${conversationId}/messages/`, { text, attachment_url: attachmentUrl });
     return res.data;
 };
+
+export const markConversationRead = async (conversationId) => {
+    const res = await axiosInstance.put(`/conversations/${conversationId}/read/`);
+    return res.data;
+};

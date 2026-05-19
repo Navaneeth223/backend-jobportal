@@ -50,3 +50,31 @@ class MessageListView(generics.ListCreateAPIView):
             
         conversation.save(update_fields=['last_message', 'last_message_at', 'unread_company', 'unread_candidate'])
 
+
+class ConversationReadView(APIView):
+    """
+    PUT /api/conversations/<uuid:conversation_id>/read/
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def put(self, request, conversation_id):
+        try:
+            conversation = Conversation.objects.get(id=conversation_id)
+        except Conversation.DoesNotExist:
+            return Response({'error': 'Conversation not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        user = request.user
+        
+        # Mark all messages in this conversation not sent by current user as read
+        Message.objects.filter(conversation=conversation).exclude(sender=user).update(is_read=True)
+
+        # Reset unread counts depending on role
+        if user.role == 'candidate':
+            conversation.unread_candidate = 0
+        elif user.role == 'company':
+            conversation.unread_company = 0
+        
+        conversation.save(update_fields=['unread_candidate', 'unread_company'])
+        return Response({'message': 'Conversation marked as read'}, status=status.HTTP_200_OK)
+
+

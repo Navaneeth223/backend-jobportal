@@ -1,32 +1,152 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, Send, Paperclip, MoreVertical, Phone, Smile, MessageSquare, MapPin, BriefcaseBusiness, ArrowLeft } from 'lucide-react';
-import { useCandidate } from '../context/CandidateContext';
+import { getConversations, getMessages, markConversationRead } from '../../api/candidateApi';
 
 const Messages = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { messages, sendMessage } = useCandidate();
   const requestedChatId = useMemo(() => {
-    const chatId = Number(searchParams.get('chatId'));
-    return Number.isNaN(chatId) ? undefined : chatId;
+    return searchParams.get('chatId') || undefined;
   }, [searchParams]);
-  const [selectedChatId, setSelectedChatId] = useState(requestedChatId ?? messages[0]?.id);
+
+  const [conversations, setConversations] = useState([]);
+  const [messagesList, setMessagesList] = useState([]);
+  const [loadingConversations, setLoadingConversations] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   const [inputText, setInputText] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
+  const [selectedChatId, setSelectedChatId] = useState(requestedChatId);
 
+  const socketRef = useRef(null);
+  const messagesEndRef = useRef(null);
+
+  // 1. Fetch conversations on mount
+  const fetchConversationsList = async (selectFirst = false) => {
+    try {
+      setLoadingConversations(true);
+      const data = await getConversations();
+      setConversations(data || []);
+      if (selectFirst && data && data.length > 0 && !requestedChatId) {
+        setSelectedChatId(data[0].id);
+      }
+    } catch (err) {
+      console.error('Error fetching conversations:', err);
+    } finally {
+      setLoadingConversations(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchConversationsList(true);
+  }, []);
+
+  // 2. Active Chat Identification
   const activeChatId =
-    requestedChatId && messages.some((chat) => chat.id === requestedChatId)
+    requestedChatId && conversations.some((chat) => chat.id === requestedChatId)
       ? requestedChatId
-      : messages.some((chat) => chat.id === selectedChatId)
+      : conversations.some((chat) => chat.id === selectedChatId)
       ? selectedChatId
-      : messages[0]?.id;
+      : conversations[0]?.id;
 
-  const selectedChat = messages.find((message) => message.id === activeChatId);
+  const selectedChat = conversations.find((message) => message.id === activeChatId);
 
+  // 3. Message loading and WebSocket subscription
+  useEffect(() => {
+    if (!activeChatId) return;
+
+    const loadMessagesAndRead = async () => {
+      try {
+        setLoadingMessages(true);
+        const msgs = await getMessages(activeChatId);
+        setMessagesList(msgs || []);
+        
+        // Reset unread count locally instantly
+        setConversations(prev =>
+          prev.map(c => (c.id === activeChatId ? { ...c, unread_candidate: 0 } : c))
+        );
+
+        // Mark as read in DB
+        await markConversationRead(activeChatId);
+      } catch (err) {
+        console.error('Error loading chat messages:', err);
+      } finally {
+        setLoadingMessages(false);
+      }
+    };
+
+    loadMessagesAndRead();
+
+    // Establish WebSocket Connection
+    const token = localStorage.getItem('access_token');
+    const wsUrl = `ws://127.0.0.1:8000/ws/chat/${activeChatId}/?token=${token}`;
+    const ws = new WebSocket(wsUrl);
+    socketRef.current = ws;
+
+    ws.onopen = () => {
+      console.log('WebSocket successfully connected to room:', activeChatId);
+      setIsConnected(true);
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket disconnected');
+      setIsConnected(false);
+    };
+
+    ws.onerror = (err) => {
+      console.error('WebSocket connection error:', err);
+      setIsConnected(false);
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      
+      // Append message locally
+      setMessagesList(prev => {
+        if (prev.some(m => m.id === data.message_id)) return prev;
+        return [
+          ...prev,
+          {
+            id: data.message_id,
+            sender_role: data.sender_role,
+            text: data.message,
+            created_at: data.created_at
+          }
+        ];
+      });
+
+      // Update last message in the sidebar
+      setConversations(prev =>
+        prev.map(c =>
+          c.id === activeChatId
+            ? { ...c, last_message: data.message, last_message_at: data.created_at }
+            : c
+        )
+      );
+    };
+
+    return () => {
+      if (ws) {
+        ws.close();
+      }
+    };
+  }, [activeChatId]);
+
+  // 4. Scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messagesList]);
+
+  // 5. Send message via WebSocket
   const handleSend = (e) => {
     e.preventDefault();
-    if (inputText.trim() && activeChatId) {
-      sendMessage(activeChatId, inputText);
+    if (inputText.trim() && activeChatId && socketRef.current && isConnected) {
+      socketRef.current.send(
+        JSON.stringify({
+          message: inputText
+        })
+      );
       setInputText('');
     }
   };
@@ -36,6 +156,16 @@ const Messages = () => {
     setIsMobileChatOpen(true);
     setSearchParams({ chatId: String(chatId) });
   };
+
+  // 6. Conversations Filter
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery.trim()) return conversations;
+    const query = searchQuery.toLowerCase();
+    return conversations.filter(c => 
+      c.company_name?.toLowerCase().includes(query) || 
+      c.job_title?.toLowerCase().includes(query)
+    );
+  }, [conversations, searchQuery]);
 
   return (
     <div className="flex h-[calc(100dvh-11rem)] min-h-[32rem] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-panel lg:h-[calc(100vh-12rem)] lg:flex-row">
@@ -47,6 +177,8 @@ const Messages = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input 
               type="text" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search chats..." 
               className="w-full rounded-xl border-none bg-slate-100 py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-blue-500 dark:bg-bg dark:text-white"
             />
@@ -54,53 +186,63 @@ const Messages = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto no-scrollbar">
-          {messages.map((chat) => (
-            <button
-              key={chat.id}
-              onClick={() => handleSelectChat(chat.id)}
-              className={`flex w-full items-start gap-4 border-l-4 p-4 transition-all ${
-                activeChatId === chat.id 
-                  ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-900/10' 
-                  : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50'
-              }`}
-            >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 text-lg font-bold text-white shadow-lg shadow-blue-500/10">
-                {chat.companyInitials}
-              </div>
-              <div className="flex-1 overflow-hidden text-left">
-                <div className="flex items-start justify-between gap-3">
-                  <span className={`truncate text-sm font-bold ${chat.unreadCount > 0 ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'}`}>
-                    {chat.jobTitle}
-                  </span>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {chat.applicationStage && (
-                      <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-bold text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
-                        {chat.applicationStage}
-                      </span>
-                    )}
-                    {chat.unreadCount > 0 && (
-                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1.5 text-[9px] font-bold text-white">
-                        {chat.unreadCount}
-                      </span>
-                    )}
+          {loadingConversations ? (
+            <div className="flex h-32 items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+            </div>
+          ) : filteredConversations.length === 0 ? (
+            <div className="p-8 text-center text-sm text-slate-500">
+              No conversations found.
+            </div>
+          ) : (
+            filteredConversations.map((chat) => (
+              <button
+                key={chat.id}
+                onClick={() => handleSelectChat(chat.id)}
+                className={`flex w-full items-start gap-4 border-l-4 p-4 transition-all ${
+                  activeChatId === chat.id 
+                    ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-900/10' 
+                    : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                }`}
+              >
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 text-lg font-bold text-white shadow-lg shadow-blue-500/10">
+                  {chat.company_initials || chat.company_name?.slice(0, 2).toUpperCase() || 'CO'}
+                </div>
+                <div className="flex-1 overflow-hidden text-left">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className={`truncate text-sm font-bold ${chat.unread_candidate > 0 ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'}`}>
+                      {chat.job_title || 'General Chat'}
+                    </span>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {chat.application_stage && (
+                        <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-bold text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
+                          {chat.application_stage}
+                        </span>
+                      )}
+                      {chat.unread_candidate > 0 && (
+                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1.5 text-[9px] font-bold text-white">
+                          {chat.unread_candidate}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <p className="mt-1 truncate text-xs font-medium text-slate-500 dark:text-slate-400">
+                    {chat.company_name}
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400 dark:text-slate-500">
+                    <span className="inline-flex items-center gap-1">
+                      <MapPin size={12} />
+                      {chat.location || 'Location not specified'}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <BriefcaseBusiness size={12} />
+                      {chat.experience || 'Not specified'}
+                    </span>
                   </div>
                 </div>
-                <p className="mt-1 truncate text-xs font-medium text-slate-500 dark:text-slate-400">
-                  {chat.companyName}
-                </p>
-                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400 dark:text-slate-500">
-                  <span className="inline-flex items-center gap-1">
-                    <MapPin size={12} />
-                    {chat.location}
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <BriefcaseBusiness size={12} />
-                    {chat.experience}
-                  </span>
-                </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            ))
+          )}
         </div>
       </div>
 
@@ -122,23 +264,23 @@ const Messages = () => {
                 <ArrowLeft size={20} />
               </button>
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 font-bold text-white">
-                {selectedChat.companyInitials}
+                {selectedChat.company_initials || selectedChat.company_name?.slice(0, 2).toUpperCase() || 'CO'}
               </div>
               <div className="min-w-0">
-                <h3 className="truncate font-bold text-slate-900 dark:text-white">{selectedChat.jobTitle}</h3>
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{selectedChat.companyName}</p>
+                <h3 className="truncate font-bold text-slate-900 dark:text-white">{selectedChat.job_title || 'General Chat'}</h3>
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{selectedChat.company_name}</p>
                 <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-medium text-slate-400 dark:text-slate-500">
                   <span className="inline-flex items-center gap-1">
                     <MapPin size={11} />
-                    {selectedChat.location}
+                    {selectedChat.location || 'Location not specified'}
                   </span>
                   <span className="inline-flex items-center gap-1">
                     <BriefcaseBusiness size={11} />
-                    {selectedChat.experience}
+                    {selectedChat.experience || 'Not specified'}
                   </span>
-                  <span className="inline-flex items-center gap-1.5 font-bold text-green-500">
-                    <span className="h-2 w-2 rounded-full bg-green-500" />
-                    Online
+                  <span className={`inline-flex items-center gap-1.5 font-bold ${isConnected ? 'text-green-500' : 'text-red-500'}`}>
+                    <span className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+                    {isConnected ? 'Connected' : 'Disconnected'}
                   </span>
                 </div>
               </div>
@@ -155,23 +297,31 @@ const Messages = () => {
 
           {/* Messages List */}
           <div className="flex-1 space-y-4 overflow-y-auto p-4 no-scrollbar sm:p-6">
-             {selectedChat.messages.map((msg) => {
-               const isCandidate = msg.sender === 'candidate';
-               return (
-                 <div key={msg.id} className={`flex ${isCandidate ? 'justify-end' : 'justify-start'}`}>
-                   <div className={`group flex max-w-[88%] flex-col gap-1 sm:max-w-[80%] ${isCandidate ? 'items-end' : 'items-start'}`}>
-                     <div className={`rounded-2xl px-4 py-3 text-sm shadow-sm transition-all ${
-                       isCandidate 
-                        ? 'bg-blue-600 text-white rounded-tr-none' 
-                        : 'bg-white text-slate-900 rounded-tl-none dark:bg-panel dark:text-slate-200'
-                     }`}>
-                       {msg.text}
+             {loadingMessages ? (
+               <div className="flex h-full items-center justify-center">
+                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+               </div>
+             ) : (
+               messagesList.map((msg) => {
+                 const isCandidate = msg.sender_role === 'candidate';
+                 const formattedTime = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                 return (
+                   <div key={msg.id} className={`flex ${isCandidate ? 'justify-end' : 'justify-start'}`}>
+                     <div className={`group flex max-w-[88%] flex-col gap-1 sm:max-w-[80%] ${isCandidate ? 'items-end' : 'items-start'}`}>
+                       <div className={`rounded-2xl px-4 py-3 text-sm shadow-sm transition-all ${
+                         isCandidate 
+                          ? 'bg-blue-600 text-white rounded-tr-none' 
+                          : 'bg-white text-slate-900 rounded-tl-none dark:bg-panel dark:text-slate-200'
+                       }`}>
+                         {msg.text}
+                       </div>
+                       <span className="text-[10px] text-slate-400 transition-opacity group-hover:opacity-100">{formattedTime}</span>
                      </div>
-                     <span className="text-[10px] text-slate-400 transition-opacity group-hover:opacity-100">{msg.time}</span>
                    </div>
-                 </div>
-               );
-             })}
+                 );
+               })
+             )}
+             <div ref={messagesEndRef} />
           </div>
 
           {/* Input Bar */}
@@ -192,7 +342,7 @@ const Messages = () => {
               </button>
               <button 
                 type="submit"
-                disabled={!inputText.trim()}
+                disabled={!inputText.trim() || !isConnected}
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-600/20 transition-all hover:bg-blue-700 active:scale-90 disabled:opacity-50"
               >
                 <Send size={18} />

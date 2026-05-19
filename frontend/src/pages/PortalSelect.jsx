@@ -5,6 +5,16 @@ import { UserCircle2, Building2, ArrowRight, Sparkles } from 'lucide-react';
 const PortalSelect = () => {
   const navigate = useNavigate();
 
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (token) {
+      localStorage.setItem('access_token', token);
+      console.log('Successfully injected access_token from query parameter.');
+    }
+  }, []);
+
+
   const cards = [
     {
       id: 'candidate',

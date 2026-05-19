@@ -123,21 +123,21 @@ const CandidateOnboarding = () => {
 
     try {
       const payload = {
-        name: formData.name || '',
+        full_name: formData.name || '',
         email: formData.email || '',
         phone: formData.phone || '',
-        title: formData.title || '',
+        current_role: formData.title || '',
         location: formData.location || '',
-        bio: formData.bio || '',
+        professional_summary: formData.bio || '',
         dob: formData.dob || null,
         gender: formData.gender || '',
         experience_years: formData.experienceYears || '',
         linkedin: formData.linkedin || '',
         github: formData.github || '',
         portfolio: formData.portfolio || '',
-        resume_url: formData.cvUrl?.startsWith('http') ? formData.cvUrl : '',
-        avatar_url: formData.avatar?.startsWith('http') ? formData.avatar : '',
-        skills: formData.skills || [],
+        resume: formData.cvUrl?.startsWith('http') ? formData.cvUrl : '',
+        profile_image: formData.avatar?.startsWith('http') ? formData.avatar : '',
+        skills_legacy: formData.skills || [],
       };
 
       try {
@@ -164,11 +164,12 @@ const CandidateOnboarding = () => {
         for (const exp of formData.experience) {
           if (exp.title) {
             await addExperience({
-              title: exp.title,
-              company: exp.company,
+              job_title: exp.title,
+              company_name: exp.company,
               start_date: exp.from,
-              end_date: exp.to,
-              description: exp.description
+              end_date: exp.to === 'Present' ? null : exp.to,
+              description: exp.description,
+              present: exp.to === 'Present' || !!exp.present
             }).catch(console.error);
           }
         }

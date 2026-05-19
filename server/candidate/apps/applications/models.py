@@ -31,7 +31,7 @@ class Application(models.Model):
     company          = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='applications')
     cover_letter     = models.TextField(blank=True)
     message          = models.TextField(blank=True)
-    cv_url           = models.URLField(blank=True)
+    resume           = models.URLField(blank=True)
     candidate_status = models.CharField(max_length=20, choices=CANDIDATE_STATUS_CHOICES, default='applied')
     recruiter_status = models.CharField(max_length=20, choices=RECRUITER_STATUS_CHOICES, default='reviewing')
     interview_date   = models.DateTimeField(null=True, blank=True)

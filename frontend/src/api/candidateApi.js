@@ -60,7 +60,7 @@ export const removeExperience = async (id) => {
 };
 
 export const addSkill = async (name, level = '') => {
-    const res = await axiosInstance.post('/candidates/skills/', { name, level });
+    const res = await axiosInstance.post('/candidates/skills/', { skill_name: name, experience_level: level });
     return res.data;
 };
 
@@ -94,7 +94,7 @@ export const applyToJob = async (jobId, coverLetter = '', message = '', cvUrl = 
         job: jobId,
         cover_letter: coverLetter,
         message: message,
-        cv_url: cvUrl
+        resume: cvUrl
     };
     const res = await axiosInstance.post('/candidates/applications/', payload);
     return res.data;

@@ -101,9 +101,20 @@ const CandidateProfile = () => {
         const data = await getCandidateProfile();
         setProfile({
           ...data,
+          name: data.full_name || '',
           experienceYears: data.experience_years,
-          avatar: data.avatar_url,
-          cvUrl: data.resume_url,
+          avatar: data.profile_image || '',
+          cvUrl: data.resume || '',
+          bio: data.professional_summary || '',
+          title: data.current_role || '',
+          skills: data.skills_legacy || data.skill_set?.map(s => s.skill_name) || [],
+          experience: (data.experience || []).map(exp => ({
+            ...exp,
+            title: exp.job_title || exp.title,
+            company: exp.company_name || exp.company,
+            from: exp.start_date,
+            to: exp.present ? 'Present' : exp.end_date,
+          })),
           createdAt: data.created_at,
         });
       } catch (err) {

@@ -4,7 +4,7 @@ from .models import CandidateProfile, CandidateEducation, CandidateExperience, C
 class CandidateSkillSerializer(serializers.ModelSerializer):
     class Meta:
         model = CandidateSkill
-        fields = ['id', 'name', 'level']
+        fields = ['id', 'skill_name', 'experience_level']
 
 
 class CandidateEducationSerializer(serializers.ModelSerializer):
@@ -22,7 +22,7 @@ class CandidateExperienceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = CandidateExperience
-        fields = ['id', 'title', 'company', 'start_date', 'end_date', 'description', 'years']
+        fields = ['id', 'job_title', 'company_name', 'start_date', 'end_date', 'description', 'present']
 
 
 class CandidateProfileSerializer(serializers.ModelSerializer):
@@ -33,26 +33,26 @@ class CandidateProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model  = CandidateProfile
         fields = [
-            'id', 'name', 'email', 'phone', 'avatar_url',
-            'title', 'location', 'bio', 'dob', 'gender',
-            'experience_years', 'linkedin', 'github', 'portfolio',
-            'resume_url', 'skills_legacy', 'skill_set', 'education', 'experience',
-            'created_at',
+            'id', 'full_name', 'email', 'phone', 'profile_image',
+            'current_role', 'location', 'professional_summary', 'dob', 'gender',
+            'experience_years', 'expected_salary', 'linkedin', 'github', 'portfolio',
+            'resume', 'skills_legacy', 'skill_set', 'education', 'experience',
+            'created_at', 'updated_at',
         ]
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
         extra_kwargs = {
             'email':       {'required': False, 'allow_blank': True},
             'phone':       {'required': False, 'allow_blank': True},
-            'name':        {'required': False, 'allow_blank': True},
+            'full_name':   {'required': False, 'allow_blank': True},
             'location':    {'required': False, 'allow_blank': True},
             'dob':         {'required': False, 'allow_null': True},
             'gender':      {'required': False, 'allow_blank': True},
-            'title':       {'required': False, 'allow_blank': True},
-            'bio':         {'required': False, 'allow_blank': True},
+            'current_role': {'required': False, 'allow_blank': True},
+            'professional_summary': {'required': False, 'allow_blank': True},
             'linkedin':    {'required': False, 'allow_blank': True},
             'github':      {'required': False, 'allow_blank': True},
             'portfolio':   {'required': False, 'allow_blank': True},
-            'resume_url':  {'required': False, 'allow_blank': True},
-            'avatar_url':  {'required': False, 'allow_blank': True},
+            'resume':      {'required': False, 'allow_blank': True},
+            'profile_image': {'required': False, 'allow_blank': True},
             'experience_years': {'required': False, 'allow_blank': True},
         }

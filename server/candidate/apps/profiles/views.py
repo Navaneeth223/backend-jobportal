@@ -81,7 +81,7 @@ class ResumeUploadView(APIView):
                     {'error': 'No file provided'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            profile.resume_url = resume
+            profile.resume = resume
             profile.save()
             return Response({'message': 'Resume uploaded successfully'})
         except CandidateProfile.DoesNotExist:
@@ -142,6 +142,12 @@ class CandidateExperienceView(APIView):
             profile = CandidateProfile.objects.get(user=request.user)
             data = request.data.copy()
             
+            # Map old keys to new keys if present
+            if 'title' in data and 'job_title' not in data:
+                data['job_title'] = data['title']
+            if 'company' in data and 'company_name' not in data:
+                data['company_name'] = data['company']
+            
             # Convert dates
             if 'start_date' in data or 'from' in data:
                 val = data.get('start_date') or data.get('from')
@@ -177,7 +183,15 @@ class CandidateSkillView(APIView):
     def post(self, request):
         try:
             profile = CandidateProfile.objects.get(user=request.user)
-            serializer = CandidateSkillSerializer(data=request.data)
+            data = request.data.copy()
+            
+            # Map old keys to new keys if present
+            if 'name' in data and 'skill_name' not in data:
+                data['skill_name'] = data['name']
+            if 'level' in data and 'experience_level' not in data:
+                data['experience_level'] = data['level']
+                
+            serializer = CandidateSkillSerializer(data=data)
             if serializer.is_valid():
                 serializer.save(candidate=profile)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)

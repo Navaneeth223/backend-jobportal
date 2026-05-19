@@ -24,12 +24,20 @@ const CandidateDashboard = () => {
         ]);
         setCandidateProfile({
           ...profileData,
+          name: profileData.full_name || '',
           experienceYears: profileData.experience_years,
-          cvUrl: profileData.resume_url,
-          avatar: profileData.avatar_url,
-          experience: profileData.experience || [],
-          skills: profileData.skills || [],
-          completionPercentage: profileData.name ? (profileData.resume_url ? 100 : 70) : 0, // simple mock completion if needed
+          cvUrl: profileData.resume || '',
+          avatar: profileData.profile_image || '',
+          experience: (profileData.experience || []).map(exp => ({
+            ...exp,
+            title: exp.job_title || exp.title,
+            company: exp.company_name || exp.company,
+            from: exp.start_date,
+            to: exp.present ? 'Present' : exp.end_date,
+          })),
+          skills: profileData.skills_legacy || profileData.skill_set?.map(s => s.skill_name) || [],
+          bio: profileData.professional_summary || '',
+          completionPercentage: profileData.full_name ? (profileData.resume ? 100 : 70) : 0,
         });
         setSavedJobs(savedJobsData || []);
       } catch (err) {

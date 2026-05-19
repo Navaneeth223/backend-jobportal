@@ -24,6 +24,7 @@ const BrowseJobs = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const { filters, updateFilters, clearFilters } = useJobFilters([]);
+  const { candidateProfile } = useCandidate();
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -31,27 +32,73 @@ const BrowseJobs = () => {
       try {
         const queryParams = {};
         if (filters.search) queryParams.keyword = filters.search;
-        if (filters.jobTypes && filters.jobTypes.length) queryParams.job_type = filters.jobTypes.join(',');
+        
+        if (filters.jobTypes && filters.jobTypes.length) {
+          const types = [];
+          const modes = [];
+          filters.jobTypes.forEach(t => {
+            const lower = t.toLowerCase();
+            if (lower === 'remote') {
+              modes.push('remote');
+            } else if (lower === 'full-time') {
+              types.push('full_time');
+            } else if (lower === 'part-time') {
+              types.push('part_time');
+            } else if (lower === 'internship') {
+              types.push('internship');
+            } else if (lower === 'freelance') {
+              types.push('contract');
+            }
+          });
+          if (types.length) queryParams.job_type = types.join(',');
+          if (modes.length) queryParams.work_mode = modes.join(',');
+        }
+        
         if (filters.location && filters.location.length) queryParams.location = filters.location.join(',');
-        // For category, you can add similar logic
+        
+        if (filters.experience && filters.experience !== 'Any') {
+          const expQueryMap = {
+            'Fresher': '0',
+            '1-3 yrs': '3',
+            '3-5 yrs': '5',
+            '5+ yrs': '15'
+          };
+          queryParams.experience = expQueryMap[filters.experience];
+        }
         
         const data = await getJobs(queryParams);
         const results = data.results || data;
         const jobsArray = Array.isArray(results) ? results : [];
         
         // Map DRF fields to frontend fields
-        const mappedJobs = jobsArray.map(j => ({
-          ...j,
-          company: j.company_name, // Map to company for useJobFilters
-          companyName: j.company_name,
-          companyLogo: j.company_logo,
-          salaryMin: j.salary_min,
-          salaryMax: j.salary_max,
-          jobType: j.job_type,
-          workMode: j.work_mode,
-          postedAt: j.posted_at,
-          experienceRequired: '1-3 yrs' // Fallback for local filtering if needed
-        }));
+        const mappedJobs = jobsArray.map(j => {
+          const jobSkills = j.skills_legacy || j.job_skills?.map(s => s.skill_name) || [];
+          const candidateSkills = candidateProfile?.skills || [];
+          
+          const candSet = new Set(candidateSkills.map(s => s.toLowerCase().trim()));
+          let matches = 0;
+          jobSkills.forEach(s => {
+            if (candSet.has(s.toLowerCase().trim())) {
+              matches++;
+            }
+          });
+          const matchPercent = jobSkills.length ? Math.round((matches / jobSkills.length) * 100) : 0;
+          
+          return {
+            ...j,
+            company: j.company_name, // Map to company for useJobFilters
+            companyName: j.company_name,
+            companyLogo: j.company_logo,
+            salaryMin: j.salary_min,
+            salaryMax: j.salary_max,
+            jobType: j.job_type,
+            workMode: j.work_mode,
+            postedAt: j.posted_at,
+            skills: jobSkills,
+            matchPercentage: matchPercent,
+            experienceRequired: j.experience_required !== undefined ? `${j.experience_required} yrs` : '1-3 yrs'
+          };
+        });
         setApiJobs(mappedJobs);
       } catch (err) {
         console.error(err);

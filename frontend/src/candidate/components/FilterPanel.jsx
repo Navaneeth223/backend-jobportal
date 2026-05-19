@@ -110,11 +110,6 @@ const FilterPanel = ({ filters, onChange, onClear }) => {
         </div>
       </div>
 
-      <button 
-        className="mt-2 w-full rounded-xl bg-blue-600 py-3 text-sm font-bold text-white transition-all hover:bg-blue-700"
-      >
-        Apply Filters
-      </button>
     </div>
   );
 };

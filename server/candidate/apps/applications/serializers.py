@@ -14,7 +14,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'job', 'job_title', 'company_name', 'company_logo',
             'location', 'job_type', 'work_mode',
-            'cover_letter', 'message', 'cv_url',
+            'cover_letter', 'message', 'resume',
             'candidate_status', 'recruiter_status',
             'interview_date', 'interview_type',
             'applied_at', 'updated_at'

@@ -1,175 +1,218 @@
-# 🚀 JOB PORTAL WEB APPLICATION
+# Job Portal Web Application
 
-A modern and responsive **Job Portal Web Application** that connects **job seekers** with **recruiters/employers**, enabling seamless job searching, posting, and application management.
-
----
-
-## 📌 Overview
-
-This project is a full-stack web application designed to simplify the hiring process by providing a centralized platform where:
-
-* 🧑‍💻 Job seekers can explore and apply for jobs
-* 🏢 Employers can post and manage job listings
-* ⚙️ Admin can control and monitor platform activity
+A full-stack job portal connecting candidates with companies. Built with React and Django, featuring real-time messaging, CV parsing, and a complete candidate profile system.
 
 ---
 
-## ✨ Features
-
-### 👤 User (Job Seeker)
-
-* Register & Login authentication
-* Browse available jobs
-* Search & filter jobs
-* Apply for jobs
-* View applied jobs
-
-### 🏢 Employer / Recruiter
-
-* Register & Login
-* Post new job listings
-* Edit/Delete job posts
-* View applicants
-
-### 🛠️ Admin Panel *(if included)*
-
-* Manage users
-* Manage job listings
-* Monitor applications
-
----
-
-## 🧰 Tech Stack
-
-**Frontend:**
-
-* HTML5
-* CSS3
-* JavaScript
-* Bootstrap / Tailwind *(update if needed)*
-
-**Backend:**
-
-* Node.js / Django / PHP *(update based on your project)*
-
-**Database:**
-
-* MongoDB / MySQL / PostgreSQL *(update accordingly)*
-
----
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 backend-jobportal/
-├── frontend/        # Vite React app
-│   ├── src/         # Frontend source code
-│   ├── public/      # Static frontend assets
-│   └── package.json # Frontend scripts and dependencies
-├── server/          # Django backend project
-│   ├── jobportal/   # Django project settings
-│   └── manage.py
-└── README.md
+├── frontend/                  # React + Vite frontend
+│   ├── src/
+│   │   ├── candidate/         # Candidate section
+│   │   │   ├── pages/         # Dashboard, Profile, Jobs, Messages, etc.
+│   │   │   ├── components/    # Reusable UI components
+│   │   │   ├── context/       # Candidate context
+│   │   │   ├── services/      # CV parser (PDF + DOCX)
+│   │   │   └── hooks/
+│   │   ├── company/           # Company section
+│   │   ├── api/               # Axios API calls
+│   │   └── pages/             # Landing page (PortalSelect)
+│   └── package.json
+└── server/                    # Django backend
+    ├── jobportal/             # Main settings and URLs
+    ├── users/                 # Custom User model + JWT auth
+    ├── candidate/
+    │   └── apps/
+    │       ├── profiles/      # Candidate profile, skills, education, experience
+    │       ├── applications/  # Job applications
+    │       └── saved_jobs/    # Bookmarked jobs
+    ├── company/
+    │   └── apps/
+    │       ├── profiles/      # Company profile and reviews
+    │       ├── jobs/          # Job listings and categories
+    │       └── interviews/    # Interview scheduling
+    ├── messaging/             # Real-time chat (Django Channels + WebSocket)
+    ├── notifications/         # In-app notifications
+    ├── manage.py
+    └── requirements.txt
 ```
 
 ---
 
-## ⚙️ Installation & Setup
+## Tech Stack
 
-### 1️⃣ Clone the repository
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, Vite, Tailwind CSS, React Router |
+| Backend | Django 6, Django REST Framework |
+| Database | PostgreSQL |
+| Auth | JWT (djangorestframework-simplejwt) |
+| Real-Time | Django Channels + Redis (WebSocket) |
+| File Storage | Cloudinary |
+| CV Parsing | pdfjs-dist + mammoth (browser-side) |
+| Task Queue | Celery + Redis |
+
+---
+
+## Features
+
+### Candidate Section
+- 5-step profile onboarding wizard
+- CV upload and auto-parse (PDF and DOCX)
+- Profile management (education, experience, skills)
+- Browse and filter job listings
+- Save and unsave jobs
+- Apply to jobs with cover letter
+- Track application status
+- Real-time messaging with companies
+- In-app notifications
+
+### Company Section
+- Company profile management
+- Post and manage job listings
+- Review applications
+- Interview scheduling
+- Real-time messaging with candidates
+
+---
+
+## Getting Started
+
+### Prerequisites
+- Python 3.12+
+- Node.js 18+
+- PostgreSQL
+- Redis (via WSL on Windows or native on Linux/Mac)
+
+---
+
+### Backend Setup
 
 ```bash
-git clone https://github.com/Navaneeth223/JOBportal.git
-cd JOBportal
+# Go to server folder
+cd server
+
+# Create and activate virtual environment
+python -m venv venv
+
+# Windows
+venv\Scripts\activate
+
+# Mac/Linux
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Create .env file with your credentials
+# See .env.example for required variables
+
+# Run migrations
+python manage.py migrate
+
+# Start Redis (WSL on Windows)
+# Open Ubuntu terminal and run:
+# sudo service redis-server start
+
+# Start server with WebSocket support
+$env:DJANGO_SETTINGS_MODULE="jobportal.settings"
+daphne -p 8000 jobportal.asgi:application
 ```
 
-### 2️⃣ Install dependencies
+---
+
+### Frontend Setup
 
 ```bash
+# Go to frontend folder
 cd frontend
+
+# Install dependencies
 npm install
-```
 
-### 3️⃣ Run the project
-
-```bash
+# Start development server
 npm run dev
 ```
 
-*(Modify commands if using Django/PHP)*
+Frontend runs at `http://localhost:5173`
 
 ---
 
-## 🌐 Usage
+### Environment Variables
 
-* Open browser and navigate to:
+Create a `.env` file inside the `server/` folder:
 
 ```
-http://localhost:3000
+SECRET_KEY=your_django_secret_key
+DEBUG=True
+
+DB_NAME=jobportal_db
+DB_USER=postgres
+DB_PASSWORD=your_postgres_password
+DB_HOST=localhost
+DB_PORT=5432
 ```
 
-* Create an account as:
+---
 
-  * Job Seeker OR Employer
+## API Endpoints
+
+### Auth
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | /api/auth/register/ | Create account |
+| POST | /api/auth/login/ | Get JWT token |
+| POST | /api/auth/token/refresh/ | Refresh token |
+
+### Candidate
+| Method | Endpoint | Description |
+|---|---|---|
+| GET/POST/PUT | /api/candidates/profile/ | Candidate profile |
+| POST | /api/candidates/resume-upload/ | Upload resume |
+| GET | /api/candidates/saved-jobs/ | List saved jobs |
+| POST/DELETE | /api/candidates/save-job/\<id\>/ | Save or unsave job |
+| GET/POST | /api/candidates/applications/ | List or submit applications |
+| DELETE | /api/candidates/applications/\<id\>/ | Withdraw application |
+| POST/DELETE | /api/candidates/skills/ | Add or remove skills |
+| POST/DELETE | /api/candidates/education/ | Add or remove education |
+| POST/DELETE | /api/candidates/experience/ | Add or remove experience |
+
+### Jobs
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | /api/jobs/ | Browse all open jobs |
+| GET | /api/jobs/\<id\>/ | Job detail |
+
+### Messaging
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | /api/conversations/ | List conversations |
+| GET | /api/conversations/\<id\>/messages/ | Get messages |
+| PUT | /api/conversations/\<id\>/read/ | Mark as read |
+| WS | ws://host/ws/chat/\<id\>/?token=\<jwt\> | WebSocket chat |
+
+### Notifications
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | /api/notifications/ | List notifications |
+| PUT | /api/notifications/\<id\>/read/ | Mark one as read |
+| PUT | /api/notifications/read-all/ | Mark all as read |
 
 ---
 
-## 📸 Screenshots
+## Notes
 
-*(Add screenshots here to impress clients 👇)*
-
-* Home Page
-* Job Listings
-* Dashboard
-* Application Page
+- This is a **sub-application**. Authentication is handled by the parent application which passes a JWT token to this app.
+- CV parsing runs entirely in the browser — no file is sent to the server during parsing.
+- WebSocket connections are authenticated via JWT token passed as a query parameter.
 
 ---
 
-## 🔐 Authentication
-
-* Secure login & registration system
-* Role-based access (User / Employer / Admin)
-
----
-
-## 🚀 Future Improvements
-
-* 💬 Real-time chat between employer & candidate
-* 📊 Dashboard analytics
-* 📱 Mobile app version
-* 🔍 AI-based job recommendation system
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome!
-
-```bash
-Fork the repo
-Create a new branch
-Commit your changes
-Push to your branch
-Create a Pull Request
-```
----
-
-## Purpose  
-The goal of this project is to build a scalable job portal system, starting with a solid frontend foundation, which can later be extended with backend services and database integration.
-
----
-
----
-
-## 📧 Contact
+## Contact
 
 **Navaneeth KV**
-📍 Taliparamba, Kerala
-📧 [navaneethkv1002@gmail.com](mailto:navaneethkv1002@gmail.com)
-🔗 [https://github.com/Navaneeth223](https://github.com/Navaneeth223)
-
----
-
-## ⭐ Support
-
-If you like this project, give it a ⭐ on GitHub!
+Taliparamba, Kerala
+navaneethkv1002@gmail.com
+https://github.com/Navaneeth223
